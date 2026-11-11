@@ -7,6 +7,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import edge_tts
 
+import imageio_ffmpeg
+FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
 ROOT=Path(__file__).resolve().parent
 OUT,WORK=ROOT/"video_output",ROOT/".video_work"
 W,H,FPS=720,1280,24
@@ -26,7 +28,9 @@ SCENES=[
 HOOK="क्या आप जानते हैं? ये पाँच सच सुनकर आपका दिमाग घूम जाएगा!"
 OUTRO="इनमें से सबसे हैरान करने वाला तथ्य कौन-सा था? कमेंट में बताइए!"
 def run(cmd):
-    subprocess.run(cmd,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+    if cmd and cmd[0] == "ffmpeg":
+        cmd[0] = FFMPEG_EXE
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 def font(sz,bold=False):
     choices=["/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
@@ -100,8 +104,9 @@ async def main():
     entries=[("शुरू करें!","",HOOK,0)]+[(a,b,c,i) for i,(a,b,c) in enumerate(SCENES,1)]+[("आपका पसंदीदा तथ्य?","",OUTRO,6)]
     for j,(title,detail,speech,idx) in enumerate(entries):
         aud=WORK/f"voice_{j}.mp3"; await tts(speech,aud); audiofiles.append(aud)
-        probe=subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(aud)],text=True)
-        dur=max(4,float(probe.strip())+0.8)
+                from mutagen.mp3 import MP3
+        dur = max(4, float(MP3(str(aud)).info.length) 
+ + 0.8)
         img=WORK/f"scene_{j}.png"
         if idx==0:
             scene(3,"पाँच चौंकाने वाले तथ्य","आख़िर तक देखिए!",img)
